@@ -4,15 +4,15 @@ import java.util.Arrays;
  * Created by r.makowiecki on 07/04/2017.
  */
 public class Runner {
-    private static final int N = 10;
+    private static final int N = 14;
     private static int solutionIndex = 1;
 
     private static int[][] board = new int[N][N];
     private static int[] placedQueens = new int[N];
     private static int[][] columnValidPlacesArray = new int[N][N];
-    private static SolvingMethod solvingMethod = SolvingMethod.BACKTRACKING;
+    private static SolvingMethod solvingMethod = SolvingMethod.FORWARD_CHECKING;
 
-    private static DataStructure dataStructure = DataStructure.TWO_DIMENSIONAL_ARRAY;
+    private static DataStructure dataStructure = DataStructure.ARRAY;
     private static boolean shouldPrintSolutions = false;
     private static int nodeEntranceCount = 0;
     private static int solutionsCount = 0;
@@ -52,14 +52,20 @@ public class Runner {
             }
 
         } else {
-            if (solveNQWithForwardChecking(columnValidPlacesArray,0)) {
-                System.out.print("Solution does not exist");
+            if(dataStructure == DataStructure.ARRAY) {
+                if (solveNQWithForwardCheckingArray(columnValidPlacesArray,0)) {
+                    System.out.print("Solution does not exist");
+                }
+            } else {
+                if (solveNQWithForwardChecking2dArray(columnValidPlacesArray,0)) {
+                    System.out.print("Solution does not exist");
+                }
             }
         }
         System.out.print("Task resolution took " + (System.currentTimeMillis() - startTime) + " ms, there were " + nodeEntranceCount + " node entrances and " + solutionsCount + " solutions.");
     }
 
-    private static boolean solveNQWithPseudoForwardChecking(int col) {
+    private static boolean solveNQWithForwardCheckingArray(int[][] safePlacesInColumns, int col) {
         if (col == N) {
             solutionsCount++;
             if (shouldPrintSolutions)
@@ -70,13 +76,12 @@ public class Runner {
         nodeEntranceCount++;
 
         for (int i = 0; i < N; i++) {
-            if (isBoardValid(i, col)) {
-                board[i][col] = 1;
-
-                if (isSolutionPossible(col)) {
-                    solveNQWithPseudoForwardChecking(col + 1);
+            if (safePlacesInColumns[i][col] == 1) {
+                placedQueens[col] = i;
+                int[][] safePlaces = calculateNonThreatenedPlacesInColumns(safePlacesInColumns, i, col);
+                if (isSolutionPossible(safePlaces, col)) {
+                    solveNQWithForwardChecking2dArray(safePlaces, col + 1);
                 }
-                board[i][col] = 0;
             }
 
         }
@@ -97,7 +102,7 @@ public class Runner {
         return true;
     }
 
-    private static boolean solveNQWithForwardChecking(int[][] safePlacesInColumns, int col) {
+    private static boolean solveNQWithForwardChecking2dArray(int[][] safePlacesInColumns, int col) {
         if (col == N) {
             solutionsCount++;
             if (shouldPrintSolutions)
@@ -113,7 +118,7 @@ public class Runner {
 
                 int[][] safePlaces = calculateNonThreatenedPlacesInColumns(safePlacesInColumns, i, col);
                 if (isSolutionPossible(safePlaces, col)) {
-                    solveNQWithForwardChecking(safePlaces, col + 1);
+                    solveNQWithForwardChecking2dArray(safePlaces, col + 1);
                 }
                 board[i][col] = 0;
             }
@@ -152,23 +157,6 @@ public class Runner {
             }
         }
         return arrayDeepCopy;
-        /*final int[][] arrayDeepCopy = createDeepArrayCopy(safePlacesArray);
-        boolean isThereDiagonalPlaceUp;
-        boolean isThereDiagonalPlaceDown;
-        for (int i = lastInsertedColumn; i < N; i++) {
-            isThereDiagonalPlaceUp = false;
-            isThereDiagonalPlaceDown = false;
-            arrayDeepCopy[lastInsertedRow][i] = 0; //wipe out all safe places horizontally
-            if (i < N - 1) {
-                if (lastInsertedRow - 1 >= 0)
-                    isThereDiagonalPlaceUp = true;
-                if (lastInsertedRow + 1 < N)
-                    isThereDiagonalPlaceDown = true;
-            }
-
-            if (isThereDiagonalPlaceUp)
-        }
-        return arrayDeepCopy;*/
     }
 
     private static int[][] createDeepArrayCopy(int[][] original) {
