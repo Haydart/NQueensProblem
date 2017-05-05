@@ -1,16 +1,21 @@
+import java.util.Arrays;
+
 /**
  * Created by r.makowiecki on 07/04/2017.
  */
 public class Runner {
-    private static final int N = 13;
+    private static final int N = 10;
     private static int solutionIndex = 1;
-    private static int nodeEntranceCount = 0;
+
     private static int[][] board = new int[N][N];
     private static int[] placedQueens = new int[N];
-
+    private static int[][] columnValidPlacesArray = new int[N][N];
     private static SolvingMethod solvingMethod = SolvingMethod.BACKTRACKING;
-    private static DataStructure dataStructure = DataStructure.ARRAY;
+
+    private static DataStructure dataStructure = DataStructure.TWO_DIMENSIONAL_ARRAY;
     private static boolean shouldPrintSolutions = false;
+    private static int nodeEntranceCount = 0;
+    private static int solutionsCount = 0;
 
     private enum SolvingMethod {
         BACKTRACKING,
@@ -23,13 +28,20 @@ public class Runner {
     }
 
     public static void main(String[] args) {
+        initValidPlacesArray();
         solveNQ();
+    }
+
+    private static void initValidPlacesArray() {
+        for (int row = 0; row < N; row ++)
+            for (int col = 0; col < N; col++)
+                columnValidPlacesArray[row][col] = 1;
     }
 
     static void solveNQ() {
         long startTime = System.currentTimeMillis();
         if (solvingMethod == SolvingMethod.BACKTRACKING) {
-            if(dataStructure == DataStructure.ARRAY) {
+            if (dataStructure == DataStructure.ARRAY) {
                 if (solveNQBacktrackingArray(0)) {
                     System.out.print("Solution does not exist");
                 }
@@ -40,27 +52,33 @@ public class Runner {
             }
 
         } else {
-            if (solveNQWithForwardChecking(0)) {
+            if (solveNQWithForwardChecking(columnValidPlacesArray,0)) {
                 System.out.print("Solution does not exist");
             }
         }
-        System.out.print("Task resolution took " + (System.currentTimeMillis() - startTime) + " ms, and " + nodeEntranceCount + " node entrances.");
+        System.out.print("Task resolution took " + (System.currentTimeMillis() - startTime) + " ms, there were " + nodeEntranceCount + " node entrances and " + solutionsCount + " solutions.");
     }
 
-    private static boolean solveNQWithForwardChecking(int col) {
-        nodeEntranceCount++;
+    private static boolean solveNQWithPseudoForwardChecking(int col) {
         if (col == N) {
-            if(shouldPrintSolutions)
+            solutionsCount++;
+            if (shouldPrintSolutions)
                 print2dSolution();
             return true;
         }
 
+        nodeEntranceCount++;
+
         for (int i = 0; i < N; i++) {
-            board[i][col] = 1;
-            if (isBoardValid(i, col) && isSolutionPossible(col)) {
-                solveNQWithForwardChecking(col + 1);
+            if (isBoardValid(i, col)) {
+                board[i][col] = 1;
+
+                if (isSolutionPossible(col)) {
+                    solveNQWithPseudoForwardChecking(col + 1);
+                }
+                board[i][col] = 0;
             }
-            board[i][col] = 0;
+
         }
         return false;
     }
@@ -79,13 +97,112 @@ public class Runner {
         return true;
     }
 
-    static boolean solveNQBacktrackingArray(int col) {
-        nodeEntranceCount++;
+    private static boolean solveNQWithForwardChecking(int[][] safePlacesInColumns, int col) {
         if (col == N) {
-            if(shouldPrintSolutions)
+            solutionsCount++;
+            if (shouldPrintSolutions)
+                print2dSolution();
+            return true;
+        }
+
+        nodeEntranceCount++;
+
+        for (int i = 0; i < N; i++) {
+            if (safePlacesInColumns[i][col] == 1) {
+                board[i][col] = 1;
+
+                int[][] safePlaces = calculateNonThreatenedPlacesInColumns(safePlacesInColumns, i, col);
+                if (isSolutionPossible(safePlaces, col)) {
+                    solveNQWithForwardChecking(safePlaces, col + 1);
+                }
+                board[i][col] = 0;
+            }
+
+        }
+        return false;
+    }
+
+    private static int[][] calculateNonThreatenedPlacesInColumns(int[][] safePlacesArray, int lastInsertedRow, int lastInsertedColumn) {
+        final int[][] arrayDeepCopy = createDeepArrayCopy(safePlacesArray);
+        boolean possiblyHasUpDiagonalToWipe = true;
+        boolean possiblyHasDownDiagonalToWipe = true;
+
+        //arrayDeepCopy[lastInsertedRow][lastInsertedColumn] = 0;
+        //no need to wipe out the place the queen has been placed on, we won`t place anymore queens in this column
+
+        for (int j = 1; j < N - lastInsertedColumn; j++) {
+            arrayDeepCopy[lastInsertedRow][lastInsertedColumn + j] = 0; //wipe out all safe places horizontally
+
+            if (possiblyHasDownDiagonalToWipe) {
+                try {
+                    arrayDeepCopy[lastInsertedRow + j][lastInsertedColumn + j] = 0; //try to wipe out safe places diagonally down
+                } catch (ArrayIndexOutOfBoundsException ignored) {
+                    possiblyHasDownDiagonalToWipe = false;
+                    //bad design, but it`s optimal
+                }
+            }
+
+            if (possiblyHasUpDiagonalToWipe) {
+                try {
+                    arrayDeepCopy[lastInsertedRow - j][lastInsertedColumn + j] = 0; //try to wipe out safe places diagonally up
+                } catch (ArrayIndexOutOfBoundsException ignored) {
+                    possiblyHasUpDiagonalToWipe = false;
+                    //bad design, but it`s optimal
+                }
+            }
+        }
+        return arrayDeepCopy;
+        /*final int[][] arrayDeepCopy = createDeepArrayCopy(safePlacesArray);
+        boolean isThereDiagonalPlaceUp;
+        boolean isThereDiagonalPlaceDown;
+        for (int i = lastInsertedColumn; i < N; i++) {
+            isThereDiagonalPlaceUp = false;
+            isThereDiagonalPlaceDown = false;
+            arrayDeepCopy[lastInsertedRow][i] = 0; //wipe out all safe places horizontally
+            if (i < N - 1) {
+                if (lastInsertedRow - 1 >= 0)
+                    isThereDiagonalPlaceUp = true;
+                if (lastInsertedRow + 1 < N)
+                    isThereDiagonalPlaceDown = true;
+            }
+
+            if (isThereDiagonalPlaceUp)
+        }
+        return arrayDeepCopy;*/
+    }
+
+    private static int[][] createDeepArrayCopy(int[][] original) {
+        final int[][] result = new int[original.length][];
+        for (int i = 0; i < original.length; i++) {
+            result[i] = Arrays.copyOf(original[i], original[i].length);
+        }
+        return result;
+    }
+
+
+    private static boolean isSolutionPossible(int[][] safePlaces, int lastInsertedColumn) {
+        // states whether there is at least one non-threatening queen to be placed in each column
+        for (int i = lastInsertedColumn + 1; i < N; i++) {
+            boolean isAbleToPlaceInCurrentColumn = false;
+            for (int row = 0; row < N && !isAbleToPlaceInCurrentColumn; row++) {
+                if (safePlaces[row][i] == 1) {
+                    isAbleToPlaceInCurrentColumn = true;
+                }
+            }
+            if (!isAbleToPlaceInCurrentColumn) return false;
+        }
+        return true;
+    }
+
+    static boolean solveNQBacktrackingArray(int col) {
+        if (col == N) {
+            solutionsCount++;
+            if (shouldPrintSolutions)
                 print1dSolution();
             return true;
         }
+
+        nodeEntranceCount++;
 
         for (int i = 0; i < N; i++) {
             placedQueens[col] = i;
@@ -97,12 +214,14 @@ public class Runner {
     }
 
     private static boolean solveNQBacktracking2dArray(int col) {
-        nodeEntranceCount++;
         if (col == N) {
-            if(shouldPrintSolutions)
+            solutionsCount++;
+            if (shouldPrintSolutions)
                 print2dSolution();
             return true;
         }
+
+        nodeEntranceCount++;
 
         for (int i = 0; i < N; i++) {
             board[i][col] = 1;
@@ -133,9 +252,9 @@ public class Runner {
 
     static boolean isBoardValid(int lastInsertedColumn) {
         for (int i = 0; i < lastInsertedColumn; i++) {
-            if(placedQueens[i] == placedQueens[lastInsertedColumn])
+            if (placedQueens[i] == placedQueens[lastInsertedColumn])
                 return false;
-            if(Math.abs(placedQueens[i] - placedQueens[lastInsertedColumn]) == Math.abs(lastInsertedColumn - i))
+            if (Math.abs(placedQueens[i] - placedQueens[lastInsertedColumn]) == Math.abs(lastInsertedColumn - i))
                 return false;
         }
         return true;
