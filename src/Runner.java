@@ -1,15 +1,13 @@
-import java.util.Arrays;
-
 /**
  * Created by r.makowiecki on 07/04/2017.
  */
 public class Runner {
-    private static final int N = 14;
+    private static final int N = 12;
     private static int solutionIndex = 1;
 
     private static int[][] board = new int[N][N];
     private static int[] placedQueens = new int[N];
-    private static int[][] columnValidPlacesArray = new int[N][N];
+    private static int[][] fieldsThreatArray = new int[N][N]; //a cell value indicates by how many queens a particular field is threatened
     private static SolvingMethod solvingMethod = SolvingMethod.FORWARD_CHECKING;
 
     private static DataStructure dataStructure = DataStructure.ARRAY;
@@ -28,14 +26,7 @@ public class Runner {
     }
 
     public static void main(String[] args) {
-        initValidPlacesArray();
         solveNQ();
-    }
-
-    private static void initValidPlacesArray() {
-        for (int row = 0; row < N; row ++)
-            for (int col = 0; col < N; col++)
-                columnValidPlacesArray[row][col] = 1;
     }
 
     static void solveNQ() {
@@ -53,19 +44,19 @@ public class Runner {
 
         } else {
             if(dataStructure == DataStructure.ARRAY) {
-                if (solveNQWithForwardCheckingArray(columnValidPlacesArray,0)) {
+                if (solveNQWithForwardCheckingArray(0)) {
                     System.out.print("Solution does not exist");
                 }
-            } else {
-                if (solveNQWithForwardChecking2dArray(columnValidPlacesArray,0)) {
+            } /*else {
+                if (solveNQWithForwardChecking2dArray(fieldsThreatArray,0)) {
                     System.out.print("Solution does not exist");
                 }
-            }
+            }*/
         }
         System.out.print("Task resolution took " + (System.currentTimeMillis() - startTime) + " ms, there were " + nodeEntranceCount + " node entrances and " + solutionsCount + " solutions.");
     }
 
-    private static boolean solveNQWithForwardCheckingArray(int[][] safePlacesInColumns, int col) {
+    private static boolean solveNQWithForwardCheckingArray(int col) {
         if (col == N) {
             solutionsCount++;
             if (shouldPrintSolutions)
@@ -76,18 +67,19 @@ public class Runner {
         nodeEntranceCount++;
 
         for (int i = 0; i < N; i++) {
-            if (safePlacesInColumns[i][col] == 1) {
+            if (fieldsThreatArray[i][col] == 0) {
                 placedQueens[col] = i;
-                int[][] safePlaces = calculateNonThreatenedPlacesInColumns(safePlacesInColumns, i, col);
-                if (isSolutionPossible(safePlaces, col)) {
-                    solveNQWithForwardChecking2dArray(safePlaces, col + 1);
+                addThreatenedPlacesInColumns(i, col);
+                if (isSolutionPossible(col)) {
+                    solveNQWithForwardCheckingArray(col + 1);
                 }
+                removeThreatenedPlacesInColumns(i, col);
             }
 
         }
         return false;
     }
-
+/*
     private static boolean isSolutionPossible(int col) {
         // states whether there is at least one non-threatening queen to be placed in each column
         for (int i = col; i < N; i++) {
@@ -100,9 +92,9 @@ public class Runner {
             if (!isAbleToPlaceInCurrentColumn) return false;
         }
         return true;
-    }
+    }*/
 
-    private static boolean solveNQWithForwardChecking2dArray(int[][] safePlacesInColumns, int col) {
+    /*private static boolean solveNQWithForwardChecking2dArray(int col) {
         if (col == N) {
             solutionsCount++;
             if (shouldPrintSolutions)
@@ -116,64 +108,58 @@ public class Runner {
             if (safePlacesInColumns[i][col] == 1) {
                 board[i][col] = 1;
 
-                int[][] safePlaces = calculateNonThreatenedPlacesInColumns(safePlacesInColumns, i, col);
-                if (isSolutionPossible(safePlaces, col)) {
-                    solveNQWithForwardChecking2dArray(safePlaces, col + 1);
+                addThreatenedPlacesInColumns(i, col);
+                if (isSolutionPossible(col)) {
+                    solveNQWithForwardChecking2dArray(col + 1);
                 }
                 board[i][col] = 0;
             }
 
         }
         return false;
+    }*/
+
+    private static void addThreatenedPlacesInColumns(int lastInsertedRow, int lastInsertedColumn) {
+        recalculateThreatenedFields(1, lastInsertedRow, lastInsertedColumn);
     }
 
-    private static int[][] calculateNonThreatenedPlacesInColumns(int[][] safePlacesArray, int lastInsertedRow, int lastInsertedColumn) {
-        final int[][] arrayDeepCopy = createDeepArrayCopy(safePlacesArray);
-        boolean possiblyHasUpDiagonalToWipe = true;
-        boolean possiblyHasDownDiagonalToWipe = true;
+    private static void removeThreatenedPlacesInColumns(int lastInsertedRow, int lastInsertedColumn) {
+        recalculateThreatenedFields(-1, lastInsertedRow, lastInsertedColumn);
+    }
 
-        //arrayDeepCopy[lastInsertedRow][lastInsertedColumn] = 0;
-        //no need to wipe out the place the queen has been placed on, we won`t place anymore queens in this column
+    private static void recalculateThreatenedFields(int valueModificator, int lastInsertedRow, int lastInsertedColumn) {
+        boolean possiblyHasUpDiagonalToMark = true;
+        boolean possiblyHasDownDiagonalToMark = true;
 
         for (int j = 1; j < N - lastInsertedColumn; j++) {
-            arrayDeepCopy[lastInsertedRow][lastInsertedColumn + j] = 0; //wipe out all safe places horizontally
+            fieldsThreatArray[lastInsertedRow][lastInsertedColumn + j] += valueModificator; //modify all places horizontally
 
-            if (possiblyHasDownDiagonalToWipe) {
+            if (possiblyHasDownDiagonalToMark) {
                 try {
-                    arrayDeepCopy[lastInsertedRow + j][lastInsertedColumn + j] = 0; //try to wipe out safe places diagonally down
+                    fieldsThreatArray[lastInsertedRow + j][lastInsertedColumn + j] += valueModificator; //try to modify places diagonally down
                 } catch (ArrayIndexOutOfBoundsException ignored) {
-                    possiblyHasDownDiagonalToWipe = false;
+                    possiblyHasDownDiagonalToMark = false;
                     //bad design, but it`s optimal
                 }
             }
 
-            if (possiblyHasUpDiagonalToWipe) {
+            if (possiblyHasUpDiagonalToMark) {
                 try {
-                    arrayDeepCopy[lastInsertedRow - j][lastInsertedColumn + j] = 0; //try to wipe out safe places diagonally up
+                    fieldsThreatArray[lastInsertedRow - j][lastInsertedColumn + j] += valueModificator; //try to modify places diagonally up
                 } catch (ArrayIndexOutOfBoundsException ignored) {
-                    possiblyHasUpDiagonalToWipe = false;
+                    possiblyHasUpDiagonalToMark = false;
                     //bad design, but it`s optimal
                 }
             }
         }
-        return arrayDeepCopy;
     }
 
-    private static int[][] createDeepArrayCopy(int[][] original) {
-        final int[][] result = new int[original.length][];
-        for (int i = 0; i < original.length; i++) {
-            result[i] = Arrays.copyOf(original[i], original[i].length);
-        }
-        return result;
-    }
-
-
-    private static boolean isSolutionPossible(int[][] safePlaces, int lastInsertedColumn) {
+    private static boolean isSolutionPossible(int lastInsertedColumn) {
         // states whether there is at least one non-threatening queen to be placed in each column
         for (int i = lastInsertedColumn + 1; i < N; i++) {
             boolean isAbleToPlaceInCurrentColumn = false;
             for (int row = 0; row < N && !isAbleToPlaceInCurrentColumn; row++) {
-                if (safePlaces[row][i] == 1) {
+                if (fieldsThreatArray[row][i] == 0) { // if no queens threat that field
                     isAbleToPlaceInCurrentColumn = true;
                 }
             }
