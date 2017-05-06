@@ -1,18 +1,18 @@
 /**
  * Created by r.makowiecki on 06/05/2017.
  */
-public class ForwardCheckingSolver implements Solver {
+public class ForwardCheckingSolver implements ISolver {
     private final int boardSize;
     private int[] placedQueens;
     private ISolutionPrinter solutionPrinter;
     private int[][] fieldsThreatArray; //a cell value indicates by how many queens a particular field is threatened
-    private int nodeEntranceCount = 0;
-    private int solutionsCount = 0;
+    private RunStatistics statistics;
 
-    public ForwardCheckingSolver(int boardSize, boolean shouldPrintSolutions) {
+    ForwardCheckingSolver(int boardSize, boolean shouldPrintSolutions) {
         this.boardSize = boardSize;
         placedQueens = new int[boardSize];
         fieldsThreatArray = new int[boardSize][boardSize];
+        statistics = new RunStatistics();
         solutionPrinter = shouldPrintSolutions ?
                 new SolutionPrinter() :
                 placedQueens -> {
@@ -21,20 +21,22 @@ public class ForwardCheckingSolver implements Solver {
     }
 
     @Override
-    public void solveNQueens() {
+    public RunStatistics solveNQueens() {
         long startTime = System.currentTimeMillis();
         solveNQWithForwardCheckingArray(0);
-        System.out.println("Forward checking algorithm took " + (System.currentTimeMillis() - startTime) + " ms, there were " + nodeEntranceCount + " node entrances and " + solutionsCount + " solutions.");
+        statistics.totalTime = System.currentTimeMillis() - startTime;
+        System.out.println("Forward checking algorithm: " + statistics.toString());
+        return statistics;
     }
 
     private boolean solveNQWithForwardCheckingArray(int col) {
         if (col == boardSize) {
-            solutionsCount++;
+            statistics.solutionsCount++;
             solutionPrinter.printSolution(placedQueens);
             return true;
         }
 
-        nodeEntranceCount++;
+        statistics.nodesEnteredCount++;
 
         for (int i = 0; i < boardSize; i++) {
             if (fieldsThreatArray[i][col] == 0) {

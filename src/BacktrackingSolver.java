@@ -1,18 +1,18 @@
 /**
  * Created by r.makowiecki on 06/05/2017.
  */
-public class BacktrackingSolver implements Solver {
+public class BacktrackingSolver implements ISolver {
     private final int boardSize;
     private final ISolutionPrinter solutionPrinter;
     private int[] placedQueens;
     private int[][] fieldsThreatArray; //a cell value indicates by how many queens a particular field is threatened
-    private int nodeEntranceCount = 0;
-    private int solutionsCount = 0;
+    private RunStatistics statistics;
 
-    public BacktrackingSolver(int boardSize, boolean shouldPrintSolutions) {
+    BacktrackingSolver(int boardSize, boolean shouldPrintSolutions) {
         this.boardSize = boardSize;
         placedQueens = new int[boardSize];
         fieldsThreatArray = new int[boardSize][boardSize];
+        statistics = new RunStatistics();
         solutionPrinter = shouldPrintSolutions ?
                 new SolutionPrinter() :
                 placedQueens -> {
@@ -21,20 +21,22 @@ public class BacktrackingSolver implements Solver {
     }
 
     @Override
-    public void solveNQueens() {
+    public RunStatistics solveNQueens() {
         long startTime = System.currentTimeMillis();
         solveNQBacktrackingArray(0);
-        System.out.println("Backtracking algorithm took " + (System.currentTimeMillis() - startTime) + " ms, there were " + nodeEntranceCount + " node entrances and " + solutionsCount + " solutions.");
+        statistics.totalTime = System.currentTimeMillis() - startTime;
+        System.out.println("Backtracking algorithm: " + statistics.toString());
+        return statistics;
     }
 
     private boolean solveNQBacktrackingArray(int col) {
         if (col == boardSize) {
-            solutionsCount++;
+            statistics.solutionsCount++;
             solutionPrinter.printSolution(placedQueens);
             return true;
         }
 
-        nodeEntranceCount++;
+        statistics.nodesEnteredCount++;
 
         for (int i = 0; i < boardSize; i++) {
             placedQueens[col] = i;

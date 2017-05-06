@@ -4,8 +4,8 @@
 public class SolutionPrinter implements ISolutionPrinter {
     @Override
     public void printSolution(int[] placedQueens) {
-        for (int i = 0; i < placedQueens.length; i++) {
-            System.out.print(placedQueens[i] + ",");
+        for (int placedQueen : placedQueens) {
+            System.out.print(placedQueen + ",");
         }
         System.out.print("\n");
     }
