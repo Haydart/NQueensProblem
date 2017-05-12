@@ -50,9 +50,8 @@ public class BacktrackingSolver implements ISolver {
     private boolean isBoardValid(int lastInsertedColumn) {
         //check if last inserted queens is in the way of any other queen
         for (int i = 0; i < lastInsertedColumn; i++) {
-            if (placedQueens[i] == placedQueens[lastInsertedColumn])
-                return false;
-            if (Math.abs(placedQueens[i] - placedQueens[lastInsertedColumn]) == Math.abs(lastInsertedColumn - i))
+            if (placedQueens[i] == placedQueens[lastInsertedColumn] ||
+                    Math.abs(placedQueens[i] - placedQueens[lastInsertedColumn]) == Math.abs(lastInsertedColumn - i))
                 return false;
         }
         return true;

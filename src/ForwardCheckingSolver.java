@@ -47,10 +47,10 @@ public class ForwardCheckingSolver implements ISolver {
                 }
                 removeThreatenedPlacesInColumns(i, col);
             }
-
         }
         return false;
     }
+
     private void addThreatenedPlacesInColumns(int lastInsertedRow, int lastInsertedColumn) {
         recalculateThreatenedFields(1, lastInsertedRow, lastInsertedColumn);
     }
@@ -60,29 +60,12 @@ public class ForwardCheckingSolver implements ISolver {
     }
 
     private void recalculateThreatenedFields(int valueModificator, int lastInsertedRow, int lastInsertedColumn) {
-        boolean possiblyHasUpDiagonalToMark = true;
-        boolean possiblyHasDownDiagonalToMark = true;
-
         for (int j = 1; j < boardSize - lastInsertedColumn; j++) {
             fieldsThreatArray[lastInsertedRow][lastInsertedColumn + j] += valueModificator; //modify all places horizontally
-
-            if (possiblyHasDownDiagonalToMark) {
-                try {
-                    fieldsThreatArray[lastInsertedRow + j][lastInsertedColumn + j] += valueModificator; //try to modify places diagonally down
-                } catch (ArrayIndexOutOfBoundsException ignored) {
-                    possiblyHasDownDiagonalToMark = false;
-                    //bad design, but it`s optimal
-                }
-            }
-
-            if (possiblyHasUpDiagonalToMark) {
-                try {
-                    fieldsThreatArray[lastInsertedRow - j][lastInsertedColumn + j] += valueModificator; //try to modify places diagonally up
-                } catch (ArrayIndexOutOfBoundsException ignored) {
-                    possiblyHasUpDiagonalToMark = false;
-                    //bad design, but it`s optimal
-                }
-            }
+            if (lastInsertedRow + j < boardSize)
+                fieldsThreatArray[lastInsertedRow + j][lastInsertedColumn + j] += valueModificator; //try to modify places diagonally down
+            if (lastInsertedRow - j >= 0)
+                fieldsThreatArray[lastInsertedRow - j][lastInsertedColumn + j] += valueModificator; //try to modify places diagonally up
         }
     }
 
